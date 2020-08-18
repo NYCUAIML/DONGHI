@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import xgboost as xgb
 
 data = pd.read_csv("0714train.csv")
+tdata = pd.read_csv("0728test.csv")
+
 data["x+"]=0
 data["x-"]=0
 data["y+"]=0
@@ -13,16 +15,27 @@ data["y-"]=0
 
 #補缺失值#string補xy都沒移動#數值補平均值
 cols = list(data.columns)
-for i,j in enumerate(data.isnull().any()):
-    if j:
-        if data[cols[i]].dtype == "object":
-            for x,z in enumerate(data[cols[i]]):
-                if type(z) == float:
-                    data.iloc[x,i]="N;0;N;0"
-        else:
-            for x,z in enumerate(data[cols[i]]):
-                if np.isnan(z):
-                    data.iloc[x,i]=np.mean(data[cols[i]])
+def add_null(idata,colname):
+    for i,j in enumerate(idata.isnull().any()):
+        if j:
+            if idata[colname[i]].dtype == "object":
+                for x,z in enumerate(idata[colname[i]]):
+                    if type(z) == float:
+                        idata.iloc[x,i]="N;0;N;0"
+            else:
+                for x,z in enumerate(idata[colname[i]]):
+                    if np.isnan(z):
+                        idata.iloc[x,i]=np.mean(idata[colname[i]])
+    return idata
+
+cols = list(data.columns)
+data = add_null(data,cols)
+
+cols = list(tdata.columns)
+tdata = add_null(tdata,cols)
+
+
+
 
 #提取string(c15-c38,c63-c82)資料
 for i in data.iloc[:,159:183]:    
@@ -78,5 +91,7 @@ def swap_columns(df, c1, c2):
 
 for i,j in enumerate(switchcolumn):
     data = swap_columns(data,j,data.columns[-(i+1)])
+
+clas = xgb.XGBRegressor()
     
 
