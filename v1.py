@@ -10,11 +10,13 @@ data["x+"]=0
 data["x-"]=0
 data["y+"]=0
 data["y-"]=0
+tdata["x+"]=0
+tdata["x-"]=0
+tdata["y+"]=0
+tdata["y-"]=0
 
-#data.columns.get_loc("Input_C_082")
 
 #補缺失值#string補xy都沒移動#數值補平均值
-cols = list(data.columns)
 def add_null(idata,colname):
     for i,j in enumerate(idata.isnull().any()):
         if j:
@@ -35,46 +37,47 @@ cols = list(tdata.columns)
 tdata = add_null(tdata,cols)
 
 
-
-
 #提取string(c15-c38,c63-c82)資料
-for i in data.iloc[:,159:183]:    
-    for z,j in enumerate(data[i]):
-        if type(j) == float:
-            continue
-        j = j.split(";")
-        p = 0
-        while p < 4:
-            if j[p] == "R":
-                data["x+"][z] = data["x+"][z]+float(j[p+1])
-            if j[p] == "L":
-                data["x-"][z] = data["x-"][z]+float(j[p+1])
-            if j[p] == "U":
-                data["y+"][z] = data["y+"][z]+float(j[p+1])
-            if j[p] == "D":
-                data["y-"][z] = data["y-"][z]+float(j[p+1])
-            p = p+2
+takelist = []
+for i in range(15,39):
+    takelist.append("Input_C_0"+str(i))
+for i in range(63,83):
+    takelist.append("Input_C_0"+str(i))
 
-for i in data.iloc[:,207:226]:    
-    for z,j in enumerate(data[i]):
-        if type(j) == float:
-            continue
-        j = j.split(";")
-        p = 0
-        while p < 4:
-            if j[p] == "R":
-                data["x+"][z] = data["x+"][z]+float(j[p+1])
-            if j[p] == "L":
-                data["x-"][z] = data["x-"][z]+float(j[p+1])
-            if j[p] == "U":
-                data["y+"][z] = data["y+"][z]+float(j[p+1])
-            if j[p] == "D":
-                data["y-"][z] = data["y-"][z]+float(j[p+1])
-            p = p+2
-                
+def xychange(inp,tlist):
+    for i in inp:
+        if i in tlist:
+            for z,j in enumerate(inp[i]):
+                if type(j) == float:
+                    continue
+                j = j.split(";")
+                p = 0
+                while p < 4:
+                    if j[p] == "R":
+                        inp["x+"][z] = inp["x+"][z]+float(j[p+1])
+                    if j[p] == "L":
+                        inp["x-"][z] = inp["x-"][z]+float(j[p+1])
+                    if j[p] == "U":
+                        inp["y+"][z] = inp["y+"][z]+float(j[p+1])
+                    if j[p] == "D":
+                        inp["y-"][z] = inp["y-"][z]+float(j[p+1])
+                    p = p+2
+    return inp
+
+data = xychange(data,takelist)
+tdata = xychange(tdata,takelist)
+
+
 #拿掉提取完的string features
-data.columns.get_loc("Input_C_082")
-data.drop(data.columns[159:183].append(data.columns[207:226]),axis=1)
+for i in data:
+    if i in takelist:
+        print(type(i))
+        data = data.drop(i,axis=1)
+
+for i in tdata:
+    if i in takelist:
+        print(type(i))
+        tdata = tdata.drop(i,axis=1)
 
 #把要預測的參數放到後面的位置
 switchcolumn = ["Input_A6_024","Input_A3_016","Input_C_013","Input_A2_016",
@@ -92,6 +95,17 @@ def swap_columns(df, c1, c2):
 for i,j in enumerate(switchcolumn):
     data = swap_columns(data,j,data.columns[-(i+1)])
 
-clas = xgb.XGBRegressor()
-    
+#change test columns order
+tdata = tdata.reindex(columns=data.columns[0:228])
 
+train = data[0:300]
+valid = data[300:]
+train_x = train.iloc[:,1:228]
+valid_x = valid.iloc[:,1:228]
+train_y = train.iloc[:,228:]
+valid_y = valid.iloc[:,228:]
+
+clas = xgb.XGBRegressor()
+clas.fit(train_x,train_y.iloc[:,0])
+clas.score(valid_x,valid_y.iloc[:,0])
+clas.predict(tdata.iloc[:,1:])
