@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import xgboost as xgb
+from sklearn.metrics import mean_squared_error
+from math import sqrt
 
 data = pd.read_csv("0714train.csv")
 tdata = pd.read_csv("0728test.csv")
@@ -71,12 +73,10 @@ tdata = xychange(tdata,takelist)
 #拿掉提取完的string features
 for i in data:
     if i in takelist:
-        print(type(i))
         data = data.drop(i,axis=1)
 
 for i in tdata:
     if i in takelist:
-        print(type(i))
         tdata = tdata.drop(i,axis=1)
 
 #把要預測的參數放到後面的位置
@@ -108,4 +108,6 @@ valid_y = valid.iloc[:,228:]
 clas = xgb.XGBRegressor()
 clas.fit(train_x,train_y.iloc[:,0])
 clas.score(valid_x,valid_y.iloc[:,0])
-clas.predict(tdata.iloc[:,1:])
+xv = clas.predict(valid_x)
+
+rms = sqrt(mean_squared_error(valid_y.iloc[:,0], xv))
