@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import xgboost as xgb
 from sklearn.metrics import mean_squared_error
 from math import sqrt
+import os
+import statistics 
 
 data = pd.read_csv("0714train.csv")
 tdata = pd.read_csv("0728test.csv")
@@ -109,5 +111,29 @@ clas = xgb.XGBRegressor()
 clas.fit(train_x,train_y.iloc[:,0])
 clas.score(valid_x,valid_y.iloc[:,0])
 xv = clas.predict(valid_x)
-
 rms = sqrt(mean_squared_error(valid_y.iloc[:,0], xv))
+
+p_result = pd.DataFrame()
+rmse_result = pd.DataFrame()
+
+p_result["預測筆數"] = list(range(1,96))
+p_result.set_index("預測筆數",inplace=True)
+rmse_result["TARGET"] = switchcolumn
+rmse_result.set_index("TARGET",inplace=True)
+
+r_list = []
+t_std = []
+
+for i in switchcolumn:
+    clas.fit(train_x,train_y[i])
+    xv = clas.predict(valid_x)
+    rms = sqrt(mean_squared_error(valid_y[i], xv))
+    r_list.append(rms)
+    t_std.append(statistics.stdev(valid_y[i]))
+    p_result[i]=clas.predict(tdata.iloc[:,1:288])
+
+rmse_result["RMSE"] = r_list
+rmse_result["STD"] = t_std
+
+#file output    
+#p_result.to_csv(path_or_buf=os.getcwd()+'/109032_TestResult.xlsx')
